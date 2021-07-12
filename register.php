@@ -2,22 +2,33 @@
 date_default_timezone_set('Asia/Shanghai');
 header("Content-Type: text/html;charset=utf-8");
 header('Access-Control-Allow-Origin:*');
-$ro = file_get_contents('php://input');
-$user = json_decode($ro, true);
-$myusername = $user['username'];
-$mypassword = $user['password'];
-$myconfirm = $user['confirm'];
-$mynickname = $user['nickname'];
-$myemail = $user['email'];
-$mybirthday = $user['birthday'];
-$mysex = $user['sex'];
-$myprovince = $user['province'];
-$mycity = $user['city'];
-$myarea = $user['area'];
+//echo json_encode($_POST);die();
+//$ro = file_get_contents('php://input');
+//$user = json_decode($ro, true);
+//$myusername = $user['username'];
+//$mypassword = $user['password'];
+//$myconfirm = $user['confirm'];
+//$mynickname = $user['nickname'];
+//$myemail = $user['email'];
+//$mybirthday = $user['birthday'];
+//$mysex = $user['sex'];
+//$myprovince = $user['province'];
+//$mycity = $user['city'];
+//$myarea = $user['area'];
+$myusername = $_POST['username'];
+$mypassword = $_POST['password'];
+$myconfirm = $_POST['confirm'];
+$mynickname = $_POST['nickname'];
+$myemail = $_POST['email'];
+$mybirthday = $_POST['birthday'];
+$mysex = $_POST['sex'];
+$myprovince = $_POST['province'];
+$mycity = $_POST['city'];
+$myarea = $_POST['area'];
 $address = $myprovince . $mycity . $myarea;
 $birth = str_replace("T16:00:00.000Z", "", $mybirthday);////转换传入后端的日期格式,使其符合数据库字段类型
 $birth = date("Y-m-d", strtotime("+1 day", strtotime($birth)));//日期+1，因为之前的日期格式直接转换成字符串会少一天
-
+$valid = "1";
 //检查输入是否符合规范
 
 //验证用户名
@@ -109,42 +120,66 @@ if (!preg_username($myusername)) {
     $row['err'] = "fail";
     $row['msg'] = "用户名格式错误";
     //echo(json_encode($row));
-} else if (!checknicknam($mynickname)) {
+    $valid = "0";
+}
+
+if (!checknicknam($mynickname)) {
     $row['status'] = "2";
     $row['err'] = "fail";
     $row['msg'] = "昵称格式错误";
     //echo(json_encode($row));
-} else if (!checkpassword($mypassword)) {
+    $valid = "0";
+}
+
+if (!checkpassword($mypassword)) {
     $row['status'] = "3";
     $row['err'] = "fail";
     $row['msg'] = "密码格式错误";
     //echo(json_encode($row));
-} else if (!checkconfirm($myconfirm, $mypassword)) {
+    $valid = "0";
+}
+
+if (!checkconfirm($myconfirm, $mypassword)) {
     $row['status'] = "4";
     $row['err'] = "fail";
     $row['msg'] = "两次输入密码不同";
     //echo(json_encode($row));
-} else if (!checksex($mysex)) {
+    $valid = "0";
+}
+
+if (!checksex($mysex)) {
     $row['status'] = "5";
     $row['err'] = "fail";
     $row['msg'] = "性别未输入";
     //echo(json_encode($row));
-} else if (!checkbirth($mybirthday)) {
+    $valid = "0";
+}
+
+if (!checkbirth($mybirthday)) {
     $row['status'] = "6";
     $row['err'] = "fail";
     $row['msg'] = "生日未输入";
     //echo(json_encode($row));
-} else if (!checklocation($address)) {
+    $valid = "0";
+}
+
+if (!checklocation($address)) {
     $row['status'] = "7";
     $row['err'] = "fail";
     $row['msg'] = "所在地未输入";
     //echo(json_encode($row));
-} else if (!preg_email($myemail)) {
+    $valid = "0";
+}
+
+if (preg_email($myemail)) {
     $row['status'] = "8";
     $row['err'] = "fail";
     $row['msg'] = "邮箱格式错误";
     //echo(json_encode($row));
-} else {
+    $valid = "0";
+}
+
+if ($valid == "1") {
     $created = date("Y-m-d H:i:s"); //获取本地时间，用以插入数据库创建时间
     $con = mysqli_connect("localhost", "root", "", "users");
     if ($con) {
@@ -165,9 +200,15 @@ if (!preg_username($myusername)) {
             $sql = "INSERT INTO `users` (`username`, `password`, `nickname`, `head`, `email`, `birthday`, `sex`, `address`, `last_login_at`, `updated_at`, `created_at`) 
 VALUES ('$myusername', '$mypassword', '$mynickname', NULL , '$myemail', '$birth', '$mysex','$address', NULL, NULL, '$created');";
             mysqli_query($con, $sql);//执行数据库操作
-            $row['status'] = "1";
-            $row['err'] = "0";
-            $row['msg'] = "注册成功";
+            if (mysqli_query($con, $sql)) {
+                $row['status'] = "1";
+                $row['err'] = "0";
+                $row['msg'] = "注册成功";
+            } else {
+                $row['status'] = "11";
+                $row['err'] = "false";
+                $row['msg'] = "数据库插入失败";
+            }
         }
         //echo(json_encode($row));
 

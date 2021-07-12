@@ -2,12 +2,15 @@
 date_default_timezone_set('Asia/Shanghai');
 header('Content-Type: application/json; charset=utf-8'); //json
 header('Access-Control-Allow-Origin:*');
+//echo json_encode($_POST);
+$myusername = $_POST['username'];
+$mypassword = $_POST['password'];
 //监听端口文件
-$ro = file_get_contents('php://input');//获取json文件
-$user = json_decode($ro, true);  //将json文件转换为php数组，供操作
-$myusername = $user['username'];
-$mypassword = $user['password'];
-
+//$ro = file_get_contents('php://input');//获取json文件
+//$user = json_decode($ro, true);  //将json文件转换为php数组，供操作
+//$myusername = $_POST['username'];
+//$mypassword = $user['password'];
+$valid = "1";//校验记录，不通过为0，通过为1
 
 //校验用户名格式
 function preg_username($username)
@@ -30,16 +33,22 @@ function checkpassword($password)
     }
 }
 
-//用户输入数据符合规范则连接数据库
+//对用户输入的数据进行参数校验
 if (!preg_username($myusername)) {
     $row['status'] = "0";
     $row['err'] = "fail";
     $row['msg'] = "用户名格式错误";
-} else if (!checkpassword($mypassword)) {
+    $valid = "0";
+}
+
+if (!checkpassword($mypassword)) {
     $row['status'] = "0";
     $row['err'] = "fail";
     $row['msg'] = "请填写6-27位密码";
-} else {
+    $valid = "0";
+}
+
+if($valid == "1") {
     $con = mysqli_connect("localhost", "root", "", "users"); //连接数据库
 
     if ($con) {
@@ -54,7 +63,7 @@ if (!preg_username($myusername)) {
         //判断结果集，返回相应的查询结果给前端
         if ($re != 0) {
             $value = $myusername;
-            setcookie("username", $value, time() + 3600 * 24);
+            setcookie("username", $value, time() + 3600 * 48);
             $row['status'] = "1";
             $row['err'] = "0";
             $row['msg'] = "登陆成功";
@@ -72,6 +81,7 @@ if (!preg_username($myusername)) {
 
     }
 }
+
 echo(json_encode($row));
 
 
